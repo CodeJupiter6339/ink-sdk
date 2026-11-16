@@ -27,6 +27,7 @@ def test_builtin_profiles_are_exact():
         "v8in@pherc0306b-ahn-s1",
         "v8in@pherc0306b-ahn-s2",
         "ink_9um@rectina-m4",
+        "studio@softloss-20261023",
     }
     assert get_profile("hecate@9.6um").input.depth == 16
     assert get_profile("canonical_2um@r152-3ddec-v2-l5-epoch13").input.depth == 62
@@ -43,6 +44,10 @@ def test_builtin_profiles_are_exact():
         ahn = get_profile(f"v8in@pherc0306b-ahn-s{seed}")
         assert ahn.adapter == "v8in" and ahn.input.depth == 24 and ahn.checkpoint.sha256.startswith(prefix)
     assert get_profile("v8in@ink-8um-v8in").checkpoint.sha256.startswith("3b94548d")
+    studio = get_profile("studio@softloss-20261023")
+    assert studio.adapter == "studio" and studio.input.depth == 16 and studio.input.stride == 64
+    assert studio.checkpoint.sha256.startswith("96b32628") and studio.checkpoint.url.startswith("https://github.com/")
+    assert studio.output.primary == "reverse" and studio.execution.blend == "hann"
 
 
 def test_profile_can_be_loaded_from_a_path(tmp_path):

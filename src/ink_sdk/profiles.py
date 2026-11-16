@@ -215,6 +215,7 @@ class ModelProfile(_Strict):
             "hecate": "surface-volume-3d2d",
             "timesformer": "surface-volume-2d",
             "v8in": "surface-volume-2d",
+            "studio": "surface-volume-3d2d",
         }
         if self.adapter not in allowed:
             raise ValueError(f"unknown adapter {self.adapter!r}")

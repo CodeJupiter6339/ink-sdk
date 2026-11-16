@@ -77,4 +77,8 @@ def get_adapter(profile: ModelProfile):
         from .adapters.v8in import V8inAdapter
 
         return V8inAdapter()
+    if profile.adapter == "studio":
+        from .adapters.studio import StudioAdapter
+
+        return StudioAdapter()
     raise ValidationError(f"unknown adapter {profile.adapter!r}")
