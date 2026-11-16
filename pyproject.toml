@@ -23,6 +23,7 @@ render = ["scipy>=1.11"]
 canonical = ["torch>=2.2"]
 hecate = ["torch>=2.2", "scipy>=1.11"]
 ink9um = ["torch>=2.2", "imagecodecs>=2024.1"]
+studio = ["torch>=2.6", "safetensors>=0.4"]
 fetch = ["huggingface_hub>=0.23"]
 timesformer = ["torch>=2.6", "safetensors>=0.4", "timesformer-pytorch==0.4.1"]
 all = ["scipy>=1.11", "torch>=2.6", "imagecodecs>=2024.1", "huggingface_hub>=0.23", "safetensors>=0.4", "timesformer-pytorch==0.4.1"]
@@ -35,7 +36,7 @@ ink-sdk = "ink_sdk.cli:app"
 where = ["src"]
 
 [tool.setuptools.package-data]
-ink_sdk = ["profiles/*.toml", "_vendor/**/*.py", "_vendor/**/*.txt", "_vendor/**/*.md"]
+ink_sdk = ["profiles/*.toml", "_vendor/**/*.py", "_vendor/**/*.txt", "_vendor/**/*.md", "_vendor/**/LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

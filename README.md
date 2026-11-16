@@ -90,6 +90,7 @@ runs the same checks as `ink-sdk doctor`.
 | `ink_9um@rectina-m4` | 9.362 ± 0.75 µm | 17 | 2D | Rectina m4; VILLA; both directions; standard lane, not the card's 7-start reader |
 | `v8in@ink-8um-v8in` | 8.64 ± 0.75 µm | 24 | 2D | v8-in (PHerc. 1447 first letters); both directions |
 | `v8in@pherc0306b-ahn-s0` / `-s1` / `-s2` | 8.64 ± 0.75 µm | 24 | 2D | A-hn seeds (PHerc. 0306B claim); both directions |
+| `studio@softloss-20261023` | 9.362 ± 0.75 µm | 16 | 2D | Studio (PHerc. 0211 submission model); both directions; stride 64 + Hann; GitHub release |
 
 `ink-sdk models` lists them; `ink-sdk models --json` also shows checkpoint paths and SHA-256 values.
 
@@ -106,6 +107,15 @@ PHerc. 0343). Its card compares it with Reader v3 on 14 held-out and control uni
 14) with the author's own reader: mean over seven 17-layer windows of a 23-layer stack, two views and four shifted
 lattices. `ink-sdk infer` runs it through the standard ink9um lane (one 17-layer window), so the card's numbers are
 not reproduced by a default run.
+
+Studio ([priyankaranke/vesuvius-studio-multiscroll-cpt](https://github.com/priyankaranke/vesuvius-studio-multiscroll-cpt),
+code MIT, weights CC BY-NC 4.0, Priyank Aranke) is a 223M-parameter 3D residual U-Net on 16 planes, trained on
+PHerc0814/0841/0009B and continued on twelve other scroll groups; the soft-loss checkpoint is the model of his
+PHerc. 0211 First Letters submission. The profile runs upstream's own `model.py` and `inference.py` (vendored
+unchanged) on the central 16 planes, with the submission tiling: stride 64 and Hann blending. Upstream's library
+default (stride 96, no blending) leaves a visible tile grid. The primary map is `reverse`, the planes deepest first,
+which is upstream's order for a `vc_render_tifxyz` render. `ink-sdk fetch --profile studio@softloss-20261023`
+downloads the 893 MB weights from the release; inference needs `torch` and `safetensors` (`ink-sdk[studio]`).
 
 ### The PHerc. 0306B rule: TRACE v3B × A-hn
 
