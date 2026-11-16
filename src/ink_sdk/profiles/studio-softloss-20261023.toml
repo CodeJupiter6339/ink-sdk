@@ -1,0 +1,50 @@
+schema = "ink-sdk.profile.v1"
+id = "studio@softloss-20261023"
+adapter = "studio"
+family = "surface-volume-3d2d"
+# Studio by Priyank Aranke: DeepResidualUNet (223M parameters), multi-scroll continued pretraining plus a soft-loss
+# stage; the model of the 28 Oct 2026 PHerc. 0211 First Letters submission. Code MIT (vendored in _vendor/studio),
+# weights CC BY-NC 4.0, published as a GitHub release asset.
+
+[source]
+repo = "priyankaranke/vesuvius-studio-multiscroll-cpt"
+revision = "235e3be8a06749344862c89a1e52c81d90b15e0e"
+upstream = "priyankaranke/vesuvius-studio-multiscroll-cpt"
+upstream_revision = "235e3be8a06749344862c89a1e52c81d90b15e0e"
+url = "https://github.com/priyankaranke/vesuvius-studio-multiscroll-cpt/tree/main/studio-softloss-20261023"
+license = "CC BY-NC 4.0 (weights); MIT (code)"
+
+[checkpoint]
+path = "studio/studio-softloss-20261023-ema.safetensors"
+upstream_path = "studio-softloss-20261023-ema.safetensors"
+sha256 = "96b326286e38de99047f7cab36170c53749a18d5f43e5fde0c7c20f2980b0e90"
+bytes = 893443724
+url = "https://github.com/priyankaranke/vesuvius-studio-multiscroll-cpt/releases/download/studio-softloss-20261023/studio-softloss-20261023-ema.safetensors"
+
+[input]
+kind = "surface-volume"
+family = "surface-volume-3d2d"
+# Trained on native 9.362 um and 8.64 um scans (PHerc0814/0841/0009B plus twelve other scroll groups).
+scale_um = 9.362
+scale_tolerance_um = 0.75
+depth = 16
+normalization = "clip-200-divide-255"
+clip = 200.0
+divisor = 255.0
+tile = 128
+overlap = 0.5
+# 64 + Hann is the tiling of the 0211 submission and of upstream's infer.sh. Upstream's library default (96, no
+# blend) writes each 96 px tile edge to edge and leaves a visible tile grid on the map.
+stride = 64
+
+[execution]
+direction = "both"
+blend = "hann"
+batch = 8
+amp = "bf16"
+
+[output]
+# Upstream's recipe stacks the planes deepest first for a vc_render_tifxyz render.
+primary = "reverse"
+no_ink_floor = 0.0
+floor_provenance = "not-declared"

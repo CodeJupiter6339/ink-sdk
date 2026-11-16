@@ -25,6 +25,17 @@ provenance of the inference code is explicit.
 - Vendored file: `src/ink_sdk/_vendor/hecate.py`
 - Used by: `hecate@2.4um` and `hecate@9.6um`.
 
+## priyankaranke/vesuvius-studio-multiscroll-cpt
+
+- Source: <https://github.com/priyankaranke/vesuvius-studio-multiscroll-cpt>
+- Pinned revision: `235e3be8a06749344862c89a1e52c81d90b15e0e`
+- License: MIT (code), copied in `src/ink_sdk/_vendor/studio/LICENSE`
+- Vendored files, byte-identical to `studio-multiscroll-cpt-20261023/hf/`:
+  - `src/ink_sdk/_vendor/studio/model.py`
+  - `src/ink_sdk/_vendor/studio/inference.py`
+- Used by: `studio@softloss-20261023`. The weights (GitHub release `studio-softloss-20261023`) are
+  CC BY-NC 4.0 and are not redistributed; `ink-sdk fetch` downloads them from the release.
+
 ## Model checkpoints
 
 The TimeSformer adapter uses the optional MIT-licensed
@@ -53,6 +64,7 @@ checkpoint when explicitly invoked; inference never downloads weights.
 | `timesformer@large-scroll1` | `scrollprize/timesformer_large_scroll1_01122024` (MIT) | `7e8b37ce66b2497b4af1ad07ae3d7d8f5c5fa990` |
 | `timesformer@scroll5` | `scrollprize/timesformer_scroll5_27112024` (MIT) | `396d39b9a66cbd21c9cbe453c4540d9516707020` |
 | `ink_9um@rectina-m4` | `evilaliv3/rectina` (CC BY-NC 4.0; file `m4/ckpt_020000.pth`) | `2f9eaf043512be4f89d22a3d39804dc55e387585` |
+| `studio@softloss-20261023` | GitHub release `priyankaranke/vesuvius-studio-multiscroll-cpt` `studio-softloss-20261023` (CC BY-NC 4.0) | `235e3be8a06749344862c89a1e52c81d90b15e0e` |
 
 ## vc_render_tifxyz / volume-cartographer
 
