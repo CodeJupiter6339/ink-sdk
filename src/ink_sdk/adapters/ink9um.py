@@ -22,7 +22,27 @@ from ..profiles import ModelProfile
 from .base import BaseAdapter, source_scale_issue, stats
 
 
-def _villa_python_path(ctx: RunContext) -> tuple[Path, Path]:
+LEGACY_MODULE = "koine_machines.inference.infer"
+MAIN_MODULE = "vesuvius.ink_detection.inference.infer"
+
+
+def villa_entrypoint(root: Path) -> tuple[Path, str] | None:
+    """Locate the 9 um inference module in a villa checkout.
+
+    Returns (directory to put on PYTHONPATH, module to run with -m), or None.
+    The merge-ink-pipelines branch ships it as ink-detection/koine_machines;
+    villa main moved the same CLI into the vesuvius package.
+    """
+    for candidate in (root / "ink-detection", root):
+        if (candidate / "koine_machines" / "inference" / "infer.py").is_file():
+            return candidate, LEGACY_MODULE
+    src = root / "vesuvius" / "src"
+    if (src / "vesuvius" / "ink_detection" / "inference" / "infer.py").is_file():
+        return src, MAIN_MODULE
+    return None
+
+
+def _villa_entry(ctx: RunContext) -> tuple[Path, Path, str]:
     root = ctx.villa or os.environ.get("VILLA")
     if not root:
         raise MissingDependencyError(
@@ -30,14 +50,19 @@ def _villa_python_path(ctx: RunContext) -> tuple[Path, Path]:
             "--villa; the pinned revision is in the profile."
         )
     root = Path(root).expanduser()
-    candidates = [root / "ink-detection", root]
-    for candidate in candidates:
-        if (candidate / "koine_machines" / "inference" / "infer.py").is_file():
-            return root, candidate
-    raise MissingDependencyError(
-        f"VILLA={root} has no ink-detection/koine_machines/inference/infer.py. "
-        "Point it at the merge-ink-pipelines checkout named by the profile."
-    )
+    found = villa_entrypoint(root)
+    if found is None:
+        raise MissingDependencyError(
+            f"VILLA={root} has neither ink-detection/koine_machines/inference/infer.py "
+            "(merge-ink-pipelines branch) nor vesuvius/src/vesuvius/ink_detection/"
+            "inference/infer.py (villa main)."
+        )
+    return root, found[0], found[1]
+
+
+def _villa_python_path(ctx: RunContext) -> tuple[Path, Path]:
+    root, python_path, _ = _villa_entry(ctx)
+    return root, python_path
 
 
 def _read_map(path: Path) -> np.ndarray:
@@ -103,7 +128,7 @@ class Ink9umAdapter(BaseAdapter):
             os.environ.get("INK_SDK_MODELS", Path.home() / ".cache" / "ink-sdk" / "models")
         )
         checkpoint = profile.verify_checkpoint(models_dir)
-        villa_root, python_path = _villa_python_path(ctx)
+        villa_root, python_path, module = _villa_entry(ctx)
         work = Path(ctx.workdir or ".") / "ink9um"
         work.mkdir(parents=True, exist_ok=True)
         input_path = Path(prepared.path)
@@ -135,7 +160,7 @@ class Ink9umAdapter(BaseAdapter):
         command = [
             interpreter,
             "-m",
-            "koine_machines.inference.infer",
+            module,
             str(input_path),
             str(checkpoint),
             str(output),
@@ -167,7 +192,7 @@ class Ink9umAdapter(BaseAdapter):
                     "VILLA environment or add it to PYTHONPATH."
                 )
             raise InkSDKError(
-                f"koine_machines.inference.infer failed with exit {completed.returncode}: "
+                f"{module} failed with exit {completed.returncode}: "
                 f"{tail}{hint}"
             )
         maps: dict[str, np.ndarray] = {}
@@ -221,6 +246,7 @@ class Ink9umAdapter(BaseAdapter):
                 "input": str(input_path),
                 "villa": str(villa_root),
                 "villa_revision": villa_revision,
+                "villa_module": module,
                 "checkpoint": str(checkpoint),
                 "direction": profile.execution.direction,
                 "blend": profile.execution.blend,

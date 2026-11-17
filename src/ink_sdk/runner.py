@@ -414,16 +414,18 @@ def doctor(
 
     villa_value = villa or os.environ.get("VILLA")
     if villa_value:
+        from .adapters.ink9um import villa_entrypoint
+
         villa_path = Path(villa_value)
-        candidates = [villa_path / "ink-detection", villa_path]
-        found = next((c for c in candidates if (c / "koine_machines" / "inference" / "infer.py").is_file()), None)
-        add("villa", found is not None, str(found or villa_path), required=False)
-        if found is not None:
+        entry = villa_entrypoint(villa_path)
+        add("villa", entry is not None, str(entry[0] if entry else villa_path), required=False)
+        if entry is not None:
+            found, module = entry
             env = dict(os.environ)
             env["PYTHONPATH"] = str(found) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
             try:
                 imported = subprocess.run(
-                    [sys.executable, "-c", "import koine_machines.inference.infer, vesuvius"],
+                    [sys.executable, "-c", f"import {module}, vesuvius"],
                     capture_output=True,
                     text=True,
                     timeout=60,
