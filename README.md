@@ -188,6 +188,8 @@ Swap the profile ID for `ink_9um@reader-v2-step040000` to run reader-v2. The VIL
 either `ink-detection/koine_machines/inference/infer.py` (the `merge-ink-pipelines` branch) or
 `vesuvius/src/vesuvius/ink_detection/inference/infer.py` (villa `main`, where the same CLI now lives), and make
 `vesuvius` importable. `imagecodecs` is required. The receipt records which module ran as `villa_module`.
+The profiles were validated with the `merge-ink-pipelines` revision pinned in each profile. villa `main`'s
+`infer.py` was rewritten (new reader and normalization), so its maps may differ slightly from the validated ones.
 
 Both profiles produce `forward`, `reverse` and `mean` maps. Use `--primary reverse` or `--primary mean` to
 select a different primary map.
