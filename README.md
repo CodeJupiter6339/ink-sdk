@@ -184,7 +184,9 @@ ink-sdk infer \
 ```
 
 Swap the profile ID for `ink_9um@reader-v2-step040000` to run reader-v2. The VILLA checkout must contain
-`ink-detection/koine_machines/inference/infer.py` and make `vesuvius` importable. `imagecodecs` is required.
+either `ink-detection/koine_machines/inference/infer.py` (the `merge-ink-pipelines` branch) or
+`vesuvius/src/vesuvius/ink_detection/inference/infer.py` (villa `main`, where the same CLI now lives), and make
+`vesuvius` importable. `imagecodecs` is required. The receipt records which module ran as `villa_module`.
 
 Both profiles produce `forward`, `reverse` and `mean` maps. Use `--primary reverse` or `--primary mean` to
 select a different primary map.
