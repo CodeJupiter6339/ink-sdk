@@ -79,6 +79,7 @@ runs the same checks as `ink-sdk doctor`.
 | `ink_9um@scrollprize-seed43-step75000` | 9.6 ± 0.5 µm | 17 | 2D | VILLA; both directions |
 | `ink_9um@reader-v2-step040000` | 9.6 ± 0.5 µm | 17 | 2D | VILLA; both directions |
 | `ink_9um@reader-v3` | 9.362 ± 0.75 µm | 17 | 2D | VILLA; both directions |
+| `ink_9um@argus-v2` | 9.362 ± 0.75 µm | 17 | 2D | Argus V2 (Reader V3 fine-tuned on native scans); VILLA; both directions; 256 px tiles |
 | `ink_9um@dense-native-step016000` | 9.362 ± 0.75 µm | 17 | 2D | VILLA; both directions; checkpoint rebuilt by `fetch` |
 | `canonical_2um@r152-3ddec-v2-l5-epoch13` | 2.399 ± 0.05 µm | 62 | 2D | forward only |
 | `hecate@2.4um` | 2.4 ± 0.048 µm | 64 | 2D / 3D | 3D with `--output-3d` |
