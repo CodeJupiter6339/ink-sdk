@@ -7,7 +7,14 @@ import numpy as np
 import pytest
 import tifffile
 
-from ink_sdk.adapters.ink9um import Ink9umAdapter, _read_map, _villa_python_path
+from ink_sdk.adapters.ink9um import (
+    LEGACY_MODULE,
+    MAIN_MODULE,
+    Ink9umAdapter,
+    _read_map,
+    _villa_python_path,
+    villa_entrypoint,
+)
 from ink_sdk.contracts import PreparedInput, RunContext, ScalePlan
 from ink_sdk.errors import MissingDependencyError
 from ink_sdk.profiles import ModelProfile
@@ -30,6 +37,24 @@ def test_villa_path_requires_the_upstream_module(tmp_path):
     assert python_path == root / "ink-detection"
 
 
+def _villa_main(tmp_path: Path) -> Path:
+    root = tmp_path / "villa"
+    module = root / "vesuvius" / "src" / "vesuvius" / "ink_detection" / "inference"
+    module.mkdir(parents=True)
+    (module / "infer.py").write_text("")
+    return root
+
+
+def test_villa_main_layout_is_found(tmp_path):
+    root = _villa_main(tmp_path)
+    assert villa_entrypoint(root) == (root / "vesuvius" / "src", MAIN_MODULE)
+    assert villa_entrypoint(_villa(tmp_path / "legacy")) == (
+        tmp_path / "legacy" / "villa" / "ink-detection",
+        LEGACY_MODULE,
+    )
+    assert villa_entrypoint(tmp_path / "empty") is None
+
+
 def test_read_map_is_uint8_over_255(tmp_path):
     path = tmp_path / "ink.tif"
     tifffile.imwrite(path, np.array([[0, 128, 255]], dtype=np.uint8))
@@ -39,7 +64,14 @@ def test_read_map_is_uint8_over_255(tmp_path):
 
 
 def test_ink9um_runs_upstream_and_reads_both_directions(tmp_path, monkeypatch):
-    root = _villa(tmp_path)
+    _run_both_directions(tmp_path, monkeypatch, _villa(tmp_path), LEGACY_MODULE)
+
+
+def test_ink9um_runs_villa_main_module(tmp_path, monkeypatch):
+    _run_both_directions(tmp_path, monkeypatch, _villa_main(tmp_path), MAIN_MODULE)
+
+
+def _run_both_directions(tmp_path, monkeypatch, root, module):
     profile = get_profile("ink_9um@scrollprize-seed43-step75000")
     checkpoint = tmp_path / "step.pth"
     checkpoint.write_bytes(b"fake")
@@ -72,7 +104,8 @@ def test_ink9um_runs_upstream_and_reads_both_directions(tmp_path, monkeypatch):
     assert raw.maps["forward"][0, 0] == pytest.approx(128 / 255)
     assert raw.maps["reverse"][0, 0] == pytest.approx(64 / 255)
     assert raw.receipt["direction"] == "both"
-    infer_calls = [c for c in calls if len(c) > 2 and c[2] == "koine_machines.inference.infer"]
+    infer_calls = [c for c in calls if len(c) > 2 and c[2] == module]
     assert len(infer_calls) == 1
+    assert raw.receipt["villa_module"] == module
     assert "--amp-dtype" in infer_calls[0]
     assert "bf16" in infer_calls[0]
