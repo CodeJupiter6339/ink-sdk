@@ -334,6 +334,7 @@ two-part mesh. Images are in render orientation. An ensemble image is a display,
 | `timesformer` | `torch>=2.6`, `safetensors`, `timesformer-pytorch==0.4.1` | GP, Large and Scroll5 |
 | `ink9um` | `torch`, `imagecodecs` | both 9 µm profiles |
 | `fetch` | `huggingface_hub` | `ink-sdk fetch` |
+| `remote` | `fsspec`, `aiohttp`, `requests` | `ink-sdk orient --ct` with an http(s) URL |
 | `test` | `pytest`, `pytest-cov` | the test suite |
 
 The external `vc_render_tifxyz` binary is not installed by pip; see *Inputs* below.
