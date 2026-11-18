@@ -138,7 +138,10 @@ def _open_ct(ct: str | Path, level: str):
     try:
         node = zarr.open(text, mode="r")
     except Exception as exc:
-        raise ValidationError(f"cannot open CT {ct}: {exc}") from exc
+        hint = ""
+        if "://" in text and isinstance(exc, ImportError):
+            hint = "; install ink-sdk[remote] to read a CT over http(s)"
+        raise ValidationError(f"cannot open CT {ct}: {exc}{hint}") from exc
     if hasattr(node, "shape"):
         return node
     if level in node:

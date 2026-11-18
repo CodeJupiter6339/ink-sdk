@@ -159,3 +159,15 @@ def test_user_primary_wins_over_the_report(tmp_path, mesh, ct):
     assert result.primary == "forward"
     assert result.receipt["primary_source"] == "user"
     assert result.receipt["orientation_check"]["applied_primary"] is None
+
+
+def test_remote_ct_without_http_backend_names_the_extra(monkeypatch):
+    from ink_sdk.errors import ValidationError
+    from ink_sdk.orient import _open_ct
+
+    def no_backend(*args, **kwargs):
+        raise ImportError("HTTPFileSystem requires \"requests\" and \"aiohttp\" to be installed")
+
+    monkeypatch.setattr(zarr, "open", no_backend)
+    with pytest.raises(ValidationError, match=r"ink-sdk\[remote\]"):
+        _open_ct("https://example.org/ct.zarr", "0")
