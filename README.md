@@ -1,5 +1,8 @@
 # ink-sdk
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Python ≥3.11](https://img.shields.io/badge/python-%E2%89%A53.11-blue)](pyproject.toml)
+
 Standalone inference for Vesuvius ink models. Give it an already rendered surface volume, or a `tifxyz`
 mesh plus a local OME-Zarr CT. It writes a probability map, a preview, a receipt and a liveness verdict.
 Hecate can also write a 3D zarr.
@@ -600,6 +603,21 @@ The default tests use synthetic meshes/CT, fake model objects and a fake rendere
 runs are manual.
 
 </details>
+
+## Related projects
+
+Part of the LimeGS toolchain for the [Vesuvius Challenge](https://scrollprize.org):
+
+- [winding-field](https://github.com/LimeGS/winding-field): winding-field core and reproducible evaluation.
+- [winding-field-cli](https://github.com/LimeGS/winding-field-cli): end-to-end CLI from CT to fibres, winding field, meshes and flattened charts.
+- [helena-framework](https://github.com/LimeGS/helena-framework): reproducible, auditable orchestration of the volume → surface → ink → page pipeline.
+- [herculaneum-legibility-index](https://github.com/LimeGS/herculaneum-legibility-index): legibility triage over the official ink maps.
+- [herculaneum-legibility-v5](https://github.com/LimeGS/herculaneum-legibility-v5): corrected-label retraining of the legibility classifier.
+- [vesuvius-chat](https://github.com/LimeGS/vesuvius-chat): search the Discord research archive from a web chat or an AI agent.
+
+## Citation
+
+If you use this work, please cite it with the metadata in [CITATION.cff](CITATION.cff) (GitHub's **Cite this repository** button reads it).
 
 ## License
 

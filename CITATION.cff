@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it using the metadata from this file."
+type: software
+title: "ink-sdk"
+abstract: "Standalone inference for Vesuvius ink models. Give it an already rendered surface volume, or a tifxyz mesh plus a local OME-Zarr CT. It writes a probability map, a preview, a receipt and a liveness verdict."
+authors:
+  - name: LimeGS
+repository-code: https://github.com/LimeGS/ink-sdk
+license: MIT
+version: "0.1.0"
+keywords:
+  - herculaneum-scrolls
+  - ink-detection
+  - python
+  - pytorch
+  - vesuvius-challenge
