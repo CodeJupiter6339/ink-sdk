@@ -575,6 +575,8 @@ Command-line options override the corresponding environment variables where the 
   make the map scientifically usable.
 - **CUDA requested but unavailable**: use `--device cpu`, or see the torch note under *Installation options*;
   9 µm is intended for CUDA and may be slow on CPU.
+- **Apple silicon**: `--device auto` picks CUDA, then MPS, then CPU. The 9 µm lane passes `--device` to VILLA's
+  infer, which needs a VILLA checkout from main for `mps`.
 
 </details>
 
