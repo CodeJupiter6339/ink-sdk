@@ -60,8 +60,29 @@ def _device(requested: str | None) -> str:
         return "auto"
 
 
+def _mps_out_of_memory(done: subprocess.CompletedProcess) -> bool:
+    return "MPS backend out of memory" in (done.stderr or "") + (done.stdout or "")
+
+
 class V8inAdapter(BaseAdapter):
     name = "v8in"
+
+    @staticmethod
+    def _predict(launcher, model_dir, layer_dir, out, batch, run, profile, device, script, ctx, commands):
+        command = [*launcher, "--model", str(model_dir), "--layers", str(layer_dir),
+                   "--output", str(out), "--batch-size", str(batch), run]
+        if profile.input.stride:
+            command += ["--stride", str(profile.input.stride)]
+        if device != "auto":
+            command += ["--device", device]
+        if sys.platform == "darwin":
+            # macOS spawns DataLoader workers: each re-imports torch and is sent the whole layer stack. Slicing
+            # tiles in the main process is cheap and gives the same map (512² w00: 365 s -> 331 s on MPS).
+            command += ["--workers", "0"]
+        commands.append(command)
+        ctx.say(f"v8in: {' '.join(command)}")
+        done = subprocess.run(command, capture_output=True, text=True, timeout=6 * 3600, cwd=str(script.parent))
+        return done, command
 
     def check(self, segment: Segment, profile: ModelProfile, ctx: RunContext | None = None) -> list[Issue]:
         issues: list[Issue] = []
@@ -103,23 +124,20 @@ class V8inAdapter(BaseAdapter):
         wanted = ["forward", "reverse"] if profile.execution.direction == "both" else [profile.execution.direction]
         maps: dict[str, np.ndarray] = {}
         commands = []
+        batch = int(profile.execution.batch)
         for direction in wanted:
             out = work / f"{direction}.npy"
             if out.exists():
                 out.unlink()
-            command = [*launcher, "--model", str(model_dir), "--layers", str(layer_dir),
-                       "--output", str(out), "--batch-size", str(profile.execution.batch), runs[direction]]
-            if profile.input.stride:
-                command += ["--stride", str(profile.input.stride)]
-            if device != "auto":
-                command += ["--device", device]
-            if sys.platform == "darwin":
-                # macOS spawns DataLoader workers: each re-imports torch and is sent the whole layer stack. Slicing
-                # tiles in the main process is cheap and gives the same map (512² w00: 365 s -> 331 s on MPS).
-                command += ["--workers", "0"]
-            commands.append(command)
-            ctx.say(f"v8in: {' '.join(command)}")
-            done = subprocess.run(command, capture_output=True, text=True, timeout=6 * 3600, cwd=str(script.parent))
+            done, command = self._predict(launcher, model_dir, layer_dir, out, batch, runs[direction], profile, device,
+                                          script, ctx, commands)
+            # v8-in needs about 2.1 GiB of GPU memory per tile, so the profile's batch of 8 does not fit most Macs.
+            # On MPS, halve it until it fits; the map does not depend on the batch.
+            while done.returncode != 0 and device == "mps" and batch > 1 and _mps_out_of_memory(done):
+                batch //= 2
+                ctx.say(f"v8in: MPS out of memory, retrying with batch {batch}")
+                done, command = self._predict(launcher, model_dir, layer_dir, out, batch, runs[direction], profile,
+                                              device, script, ctx, commands)
             if done.returncode != 0:
                 raise InkSDKError(f"v8-in predict.py failed with exit {done.returncode}: "
                                   f"{(done.stderr or done.stdout)[-3000:]}")
@@ -142,7 +160,7 @@ class V8inAdapter(BaseAdapter):
                 "model_dir": str(model_dir),
                 "checkpoint": str(checkpoint),
                 "direction": profile.execution.direction,
-                "batch": profile.execution.batch,
+                "batch": batch,
                 "runtime_seconds": round(time.time() - started, 2),
                 "statistics": {key: stats(value) for key, value in maps.items()},
                 "non_claims": [
