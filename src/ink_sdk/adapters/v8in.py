@@ -38,7 +38,7 @@ def _predict_py(ctx: RunContext | None) -> Path:
     for c in candidates:
         script = c / "predict.py" if c.is_dir() else c
         if script.is_file() and (script.parent / "ink8um").is_dir():
-            return script
+            return script.resolve()  # predict.py runs with cwd=its folder, so relative paths would break
     raise MissingDependencyError(
         "the v8-in lane needs predict.py and the ink8um package from YoussefMoNader/ink-8um-v8in. "
         "Run `ink-sdk fetch v8in@ink-8um-v8in` or set V8IN_CODE to that checkout."
@@ -107,9 +107,9 @@ class V8inAdapter(BaseAdapter):
         if layers < int(profile.input.depth):
             raise InkSDKError(f"{profile.id} needs {profile.input.depth} layers, the prepared volume has {layers}")
         checkpoint = profile.verify_checkpoint(_models_dir(ctx))
-        model_dir = checkpoint.parent                      # config.json + model.safetensors
+        model_dir = checkpoint.parent.resolve()            # config.json + model.safetensors
         script = _predict_py(ctx)
-        work = Path(ctx.workdir or ".") / "v8in"
+        work = (Path(ctx.workdir or ".") / "v8in").resolve()
         layer_dir = work / "layers"
         layer_dir.mkdir(parents=True, exist_ok=True)
         for old in layer_dir.glob("*.tif"):
