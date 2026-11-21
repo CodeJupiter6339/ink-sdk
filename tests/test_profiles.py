@@ -29,6 +29,7 @@ def test_builtin_profiles_are_exact():
         "ink_9um@rectina-m4",
         "studio@softloss-20261023",
         "ink_9um@argus-v2",
+        "ink_9um@argus-v3",
     }
     assert get_profile("hecate@9.6um").input.depth == 16
     assert get_profile("canonical_2um@r152-3ddec-v2-l5-epoch13").input.depth == 62
@@ -96,5 +97,13 @@ def test_argus_v2_profile_is_a_reader_v3_drop_in():
     argus, reader = get_profile("ink_9um@argus-v2"), get_profile("ink_9um@reader-v3")
     assert argus.adapter == reader.adapter == "ink9um"
     assert argus.checkpoint.sha256.startswith("659130f7")
+    assert argus.input.depth == reader.input.depth == 17 and argus.input.tile == 256
+    assert argus.output.no_ink_floor == 0.5
+
+
+def test_argus_v3_profile_is_a_reader_v3_drop_in():
+    argus, reader = get_profile("ink_9um@argus-v3"), get_profile("ink_9um@reader-v3")
+    assert argus.adapter == reader.adapter == "ink9um"
+    assert argus.checkpoint.sha256.startswith("2d887d2b")
     assert argus.input.depth == reader.input.depth == 17 and argus.input.tile == 256
     assert argus.output.no_ink_floor == 0.5
