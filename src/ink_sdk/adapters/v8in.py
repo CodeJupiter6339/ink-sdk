@@ -22,7 +22,7 @@ import tifffile
 from ..contracts import Issue, PreparedInput, RawOutput, RunContext, Segment
 from ..errors import InkSDKError, MissingDependencyError
 from ..profiles import ModelProfile
-from .base import BaseAdapter, source_scale_issue, stats
+from .base import BaseAdapter, resolve_device, source_scale_issue, stats
 
 
 def _models_dir(ctx: RunContext | None) -> Path:
@@ -43,6 +43,21 @@ def _predict_py(ctx: RunContext | None) -> Path:
         "the v8-in lane needs predict.py and the ink8um package from YoussefMoNader/ink-8um-v8in. "
         "Run `ink-sdk fetch v8in@ink-8um-v8in` or set V8IN_CODE to that checkout."
     )
+
+
+MPS_RUNNER = Path(__file__).resolve().parents[1] / "v8in_mps_runner.py"
+
+
+def _device(requested: str | None) -> str:
+    """The device for predict.py. Left alone, predict.py picks CUDA or else the CPU, so `auto` is resolved here: on a
+    Mac it becomes `mps`, as for the in-process adapters."""
+    value = (requested or "auto").lower()
+    if value != "auto":
+        return value
+    try:
+        return resolve_device("auto")
+    except ImportError:
+        return "auto"
 
 
 class V8inAdapter(BaseAdapter):
@@ -81,7 +96,9 @@ class V8inAdapter(BaseAdapter):
         for i in range(layers):
             tifffile.imwrite(layer_dir / f"{i:02d}.tif", np.asarray(prepared.array[i]))
         interpreter = ctx.python or sys.executable
-        device = getattr(ctx, "device", None) or "auto"
+        device = _device(getattr(ctx, "device", None))
+        # On MPS, predict.py runs through a wrapper that sends the ResNet3D's 3-D convolutions through 2-D kernels.
+        launcher = [interpreter, str(MPS_RUNNER), str(script)] if device == "mps" else [interpreter, str(script)]
         runs = {"forward": "--no-reverse", "reverse": "--reverse"}
         wanted = ["forward", "reverse"] if profile.execution.direction == "both" else [profile.execution.direction]
         maps: dict[str, np.ndarray] = {}
@@ -90,12 +107,16 @@ class V8inAdapter(BaseAdapter):
             out = work / f"{direction}.npy"
             if out.exists():
                 out.unlink()
-            command = [interpreter, str(script), "--model", str(model_dir), "--layers", str(layer_dir),
+            command = [*launcher, "--model", str(model_dir), "--layers", str(layer_dir),
                        "--output", str(out), "--batch-size", str(profile.execution.batch), runs[direction]]
             if profile.input.stride:
                 command += ["--stride", str(profile.input.stride)]
             if device != "auto":
                 command += ["--device", device]
+            if sys.platform == "darwin":
+                # macOS spawns DataLoader workers: each re-imports torch and is sent the whole layer stack. Slicing
+                # tiles in the main process is cheap and gives the same map (512² w00: 365 s -> 331 s on MPS).
+                command += ["--workers", "0"]
             commands.append(command)
             ctx.say(f"v8in: {' '.join(command)}")
             done = subprocess.run(command, capture_output=True, text=True, timeout=6 * 3600, cwd=str(script.parent))
