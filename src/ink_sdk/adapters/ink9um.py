@@ -95,6 +95,26 @@ def _device_args(
     return [], {}
 
 
+LOADER_THREADS = 4
+
+
+def _loader_args(python_path: Path, module: str, platform: str | None = None) -> list[str]:
+    """Tile loaders for upstream infer: threads instead of worker processes on macOS.
+
+    On macOS upstream's spawned DataLoader workers each take seconds to start and, until ScrollPrize/villa#2608, about
+    5 s to shut down after every direction: on a 1024 x 1024 PHerc0841 region the run took 62.8 s with the default
+    four workers and 19.2 s with --loader-threads 4, with the same maps. Older revisions have no --loader-threads.
+    """
+    if (platform or sys.platform) != "darwin":
+        return []
+    source = python_path / (module.replace(".", "/") + ".py")
+    try:
+        has_threads = '"--loader-threads"' in source.read_text(encoding="utf-8")
+    except OSError:
+        has_threads = False
+    return ["--num-workers", "0", "--loader-threads", str(LOADER_THREADS)] if has_threads else []
+
+
 def _read_map(path: Path) -> np.ndarray:
     if not path.is_file():
         raise InkSDKError(f"inference reported success but wrote no map: {path}")
@@ -208,6 +228,7 @@ class Ink9umAdapter(BaseAdapter):
         ]
         device_args, device_env = _device_args(python_path, module, ctx.device, ctx.say)
         command += device_args
+        command += _loader_args(python_path, module)
         env = dict(os.environ)
         env.update(device_env)
         env["PYTHONPATH"] = str(python_path) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")

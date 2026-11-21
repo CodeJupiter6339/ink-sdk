@@ -12,6 +12,7 @@ from ink_sdk.adapters.ink9um import (
     MAIN_MODULE,
     Ink9umAdapter,
     _device_args,
+    _loader_args,
     _read_map,
     _villa_python_path,
     villa_entrypoint,
@@ -166,3 +167,13 @@ def test_ink9um_passes_device_to_villa_main(tmp_path, monkeypatch):
     infer_call = next(c for c in calls if len(c) > 2 and c[2] == MAIN_MODULE)
     assert infer_call[-2:] == ["--device", "mps"]
     assert raw.receipt["command"][-2:] == ["--device", "mps"]
+
+
+def test_loader_args_use_threads_on_macos_when_upstream_has_them(tmp_path):
+    main = _villa_main(tmp_path / "main") / "vesuvius" / "src"
+    infer = main / "vesuvius" / "ink_detection" / "inference" / "infer.py"
+    infer.write_text('parser.add_argument("--loader-threads", type=int, default=0)\n')
+    assert _loader_args(main, MAIN_MODULE, "darwin") == ["--num-workers", "0", "--loader-threads", "4"]
+    assert _loader_args(main, MAIN_MODULE, "linux") == []
+    infer.write_text("parser.add_argument('--gpus')\n")
+    assert _loader_args(main, MAIN_MODULE, "darwin") == []
