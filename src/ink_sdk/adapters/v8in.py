@@ -49,13 +49,14 @@ MPS_RUNNER = Path(__file__).resolve().parents[1] / "v8in_mps_runner.py"
 
 
 def _device(requested: str | None) -> str:
-    """The device for predict.py. Left alone, predict.py picks CUDA or else the CPU, so `auto` is resolved here: on a
-    Mac it becomes `mps`, as for the in-process adapters."""
+    """The device for predict.py. Left alone, predict.py picks CUDA or else the CPU, so `auto` becomes `mps` when this
+    machine has an Apple GPU, as for the in-process adapters. Otherwise `auto` is left to predict.py: it may run under
+    another interpreter (--python) whose torch sees a different set of devices."""
     value = (requested or "auto").lower()
     if value != "auto":
         return value
     try:
-        return resolve_device("auto")
+        return "mps" if resolve_device("auto") == "mps" else "auto"
     except ImportError:
         return "auto"
 

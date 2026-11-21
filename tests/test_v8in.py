@@ -52,12 +52,19 @@ def test_auto_on_a_mac_runs_predict_on_mps_through_the_runner(tmp_path, monkeypa
     assert v8in.MPS_RUNNER.is_file()
 
 
-@pytest.mark.parametrize("device, resolved", [("cpu", None), ("auto", "cuda")])
-def test_other_devices_run_predict_directly(tmp_path, monkeypatch, device, resolved):
-    calls, script = _commands(tmp_path, monkeypatch, device, resolved)
+def test_explicit_devices_are_passed_and_run_predict_directly(tmp_path, monkeypatch):
+    calls, script = _commands(tmp_path, monkeypatch, "cpu")
     for command in calls:
         assert command[:2] == ["py", str(script)]
-        assert command[command.index("--device") + 1] == (resolved or device)
+        assert command[command.index("--device") + 1] == "cpu"
+
+
+@pytest.mark.parametrize("resolved", ["cuda", "cpu"])
+def test_auto_off_a_mac_is_left_to_predict_py(tmp_path, monkeypatch, resolved):
+    calls, script = _commands(tmp_path, monkeypatch, "auto", resolved)
+    for command in calls:
+        assert command[:2] == ["py", str(script)]
+        assert "--device" not in command  # as before: predict.py picks CUDA or the CPU itself
 
 
 def test_macos_loads_tiles_in_the_main_process(tmp_path, monkeypatch):
