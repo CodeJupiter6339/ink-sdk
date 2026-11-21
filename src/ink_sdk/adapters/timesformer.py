@@ -18,7 +18,7 @@ from ..errors import (
     ValidationError,
 )
 from ..profiles import ModelProfile
-from .base import BaseAdapter, resolve_device, source_scale_issue, stats
+from .base import BaseAdapter, batch_size, resolve_device, source_scale_issue, stats
 from .canonical2um import grid
 
 VARIANTS = {
@@ -199,8 +199,8 @@ class TimeSformerAdapter(BaseAdapter):
                     stripe = np.asarray(volume[lo:lo+26, y:y+64, :])
                     if stripe.shape[1:] != (64, w):
                         stripe = np.pad(stripe, ((0, 0), (0, 64-stripe.shape[1]), (0, w-width)))
-                    for start in range(0, len(row), profile.execution.batch):
-                        positions = row[start:start+profile.execution.batch]
+                    for start in range(0, len(row), batch_size(profile, ctx)):
+                        positions = row[start:start+batch_size(profile, ctx)]
                         tiles = np.stack([stripe[:, :, x:x+64] for x in positions])
                         if order == "reverse":
                             tiles = tiles[:, ::-1]
@@ -232,7 +232,7 @@ class TimeSformerAdapter(BaseAdapter):
             quantisation={"source_dtype": "float32", "levels": None, "scale": 1., "display_rescale": False},
             receipt={"adapter": self.name, "checkpoint": str(checkpoint), "architecture": _model_config(profile),
                 "adapter_status": EXPERIMENTAL, "normalization": "clip-200-div-200", "clip": 200, "divisor": 200,
-                "device": device_name, "batch": profile.execution.batch, "precision": "fp32", "tta": False,
+                "device": device_name, "batch": batch_size(profile, ctx), "precision": "fp32", "tta": False,
                 "depth_window": [lo, lo+26], "state_dict_strict": True,
                 "sliding_window": {"tile_size": 64, "stride": profile.input.stride, "blend": "hann",
                     "candidate_tiles": len(xs)*len(ys), "kept_tiles": kept, "output_scale_factor": 16,

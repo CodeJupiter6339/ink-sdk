@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pytest
 import torch
 
 from ink_sdk.adapters.canonical2um import Canonical2umAdapter
@@ -123,3 +124,14 @@ def test_hecate_bf16_accepts_an_indexed_cuda_device(tmp_path, monkeypatch):
     raw = adapter.run(_prepared(tmp_path, (64, 32, 32), 2.4), profile, ctx)
     assert precisions and set(precisions) == {"bf16"}
     assert raw.receipt["device"] == "cuda:0"
+
+
+def test_batch_size_prefers_the_run_override():
+    from ink_sdk.adapters.base import batch_size
+    from ink_sdk.errors import ValidationError
+
+    profile = get_profile("studio@softloss-20261023")
+    assert batch_size(profile, None) == batch_size(profile, RunContext()) == profile.execution.batch == 8
+    assert batch_size(profile, RunContext(batch=1)) == 1
+    with pytest.raises(ValidationError):
+        batch_size(profile, RunContext(batch=0))

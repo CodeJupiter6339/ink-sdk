@@ -19,7 +19,7 @@ from ..contracts import Issue, PreparedInput, RawOutput, RunContext, Segment
 from ..errors import InkSDKError, MissingDependencyError
 from ..io import write_zarr
 from ..profiles import ModelProfile
-from .base import BaseAdapter, source_scale_issue, stats
+from .base import BaseAdapter, batch_size, source_scale_issue, stats
 
 
 LEGACY_MODULE = "koine_machines.inference.infer"
@@ -221,7 +221,7 @@ class Ink9umAdapter(BaseAdapter):
             "--direction",
             str(profile.execution.direction),
             "--batch-size",
-            str(profile.execution.batch),
+            str(batch_size(profile, ctx)),
             "--amp-dtype",
             upstream_amp,
             "--no-compile",
@@ -304,7 +304,7 @@ class Ink9umAdapter(BaseAdapter):
                 "checkpoint": str(checkpoint),
                 "direction": profile.execution.direction,
                 "blend": profile.execution.blend,
-                "batch": profile.execution.batch,
+                "batch": batch_size(profile, ctx),
                 "amp": upstream_amp,
                 "amp_requested": amp,
                 "runtime_seconds": round(time.time() - started, 2),

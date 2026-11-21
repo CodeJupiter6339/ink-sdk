@@ -62,6 +62,7 @@ def _ctx(
     primary: Optional[str],
     no_render_cache: bool,
     orient_report: Optional[dict] = None,
+    batch: Optional[int] = None,
 ) -> RunContext:
     return RunContext(
         device=device,
@@ -79,6 +80,7 @@ def _ctx(
         resample_from_um=resample_from_um,
         output_3d=output_3d,
         amp=amp,
+        batch=batch,
         roi=roi,
         normal=normal,
         umbilicus=umbilicus,
@@ -324,6 +326,10 @@ def infer(
     roi: Optional[str] = typer.Option(None, "--roi", help="y0,y1,x0,x1 half-open at output scale."),
     resample_from_um: Optional[float] = typer.Option(None, "--resample-from-um"),
     amp: Optional[str] = typer.Option(None, "--amp", help="Override bf16/fp16/default/fp32."),
+    batch: Optional[int] = typer.Option(
+        None, "--batch", min=1,
+        help="Tiles per forward pass, overriding the profile's execution.batch. Lower it when the GPU runs out of "
+             "memory; the maps change only by float rounding."),
     device: str = typer.Option("auto", "--device"),
     primary: Optional[str] = typer.Option(None, "--primary"),
     orient_report: Optional[Path] = typer.Option(
@@ -357,6 +363,7 @@ def infer(
         amp=amp, roi=parsed_roi, normal=normal, umbilicus=umbilicus, primary=primary,
         no_render_cache=no_render_cache,
         orient_report=json.loads(orient_report.read_text(encoding="utf-8")) if orient_report else None,
+        batch=batch,
     )
     sdk = _build_sdk(renderer, models_dir, cache_dir, device, villa)
     segment = _build_segment(
@@ -432,6 +439,10 @@ def battery_cmd(
     thresholds: str = typer.Option("0.5,0.7", "--thresholds"),
     resample_from_um: Optional[float] = typer.Option(
         None, "--resample-from-um", help="Opt-in 9 um resample (e.g. 8.64), applied to ink9um profiles only."),
+    batch: Optional[int] = typer.Option(
+        None, "--batch", min=1,
+        help="Tiles per forward pass, overriding the profile's execution.batch. Lower it when the GPU runs out of "
+             "memory; the maps change only by float rounding."),
     device: str = typer.Option("auto", "--device"),
     villa: Optional[Path] = typer.Option(None, "--villa"),
     python: Optional[str] = typer.Option(None, "--python"),
@@ -451,7 +462,7 @@ def battery_cmd(
         device=device, cache_dir=cache_dir, models_dir=models_dir, renderer=None, villa=villa, python=python,
         overwrite=True, dry_run=dry_run, deterministic=False, render_threads=1, max_render_gb=64.0,
         on_degenerate="warn", resample_from_um=resample_from_um, output_3d=False, amp=None, roi=None,
-        normal="auto", umbilicus=None, primary=None, no_render_cache=False,
+        normal="auto", umbilicus=None, primary=None, no_render_cache=False, batch=batch,
     )
     sdk = _build_sdk(None, models_dir, cache_dir, device, villa)
     selected = [get_profile(item) for item in profile] if profile else list_profiles()

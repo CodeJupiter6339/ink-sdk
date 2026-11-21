@@ -17,7 +17,7 @@ import numpy as np
 from ..contracts import Issue, PreparedInput, RawOutput, RunContext, Segment
 from ..errors import InkSDKError, ValidationError
 from ..profiles import ModelProfile
-from .base import BaseAdapter, source_scale_issue, stats
+from .base import BaseAdapter, batch_size, source_scale_issue, stats
 
 
 def _default_model_factory(checkpoint: Path, device, num_frames: int):
@@ -134,8 +134,8 @@ class Canonical2umAdapter(BaseAdapter):
         norm = torch.zeros_like(total)
         divisor = float(profile.input.divisor or 255.0)
         with torch.inference_mode():
-            for start in range(0, len(kept), int(profile.execution.batch)):
-                chunk = kept[start : start + int(profile.execution.batch)]
+            for start in range(0, len(kept), batch_size(profile, ctx)):
+                chunk = kept[start : start + batch_size(profile, ctx)]
                 batch = (
                     torch.stack([volume_t[:, y : y + tile, x : x + tile] for y, x in chunk])
                     .to(device=device, dtype=torch.float32)
@@ -180,7 +180,7 @@ class Canonical2umAdapter(BaseAdapter):
                 "normalization": "divide-255-no-clip",
                 "divisor": divisor,
                 "device": device_name,
-                "batch": profile.execution.batch,
+                "batch": batch_size(profile, ctx),
                 "sliding_window": {
                     "tile_size": tile,
                     "stride": stride,

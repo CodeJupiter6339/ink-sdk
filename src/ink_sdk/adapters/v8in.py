@@ -22,7 +22,7 @@ import tifffile
 from ..contracts import Issue, PreparedInput, RawOutput, RunContext, Segment
 from ..errors import InkSDKError, MissingDependencyError
 from ..profiles import ModelProfile
-from .base import BaseAdapter, resolve_device, source_scale_issue, stats
+from .base import BaseAdapter, batch_size, resolve_device, source_scale_issue, stats
 
 
 def _models_dir(ctx: RunContext | None) -> Path:
@@ -125,7 +125,8 @@ class V8inAdapter(BaseAdapter):
         wanted = ["forward", "reverse"] if profile.execution.direction == "both" else [profile.execution.direction]
         maps: dict[str, np.ndarray] = {}
         commands = []
-        batch = int(profile.execution.batch)
+        batch = batch_size(profile, ctx)
+        explicit = ctx.batch is not None  # --batch is taken as given
         for direction in wanted:
             out = work / f"{direction}.npy"
             if out.exists():
@@ -134,7 +135,7 @@ class V8inAdapter(BaseAdapter):
                                           script, ctx, commands)
             # v8-in needs about 2.1 GiB of GPU memory per tile, so the profile's batch of 8 does not fit most Macs.
             # On MPS, halve it until it fits; the map does not depend on the batch.
-            while done.returncode != 0 and device == "mps" and batch > 1 and _mps_out_of_memory(done):
+            while done.returncode != 0 and device == "mps" and not explicit and batch > 1 and _mps_out_of_memory(done):
                 batch //= 2
                 ctx.say(f"v8in: MPS out of memory, retrying with batch {batch}")
                 done, command = self._predict(launcher, model_dir, layer_dir, out, batch, runs[direction], profile,

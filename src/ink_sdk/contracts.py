@@ -77,6 +77,7 @@ class RunContext:
     resample_from_um: float | None = None
     output_3d: bool = False
     amp: str | None = None
+    batch: int | None = None  # overrides the profile's execution.batch (memory, not results)
     roi: tuple[int, int, int, int] | None = None
     normal: str = "auto"  # auto | inward | outward
     umbilicus: Path | None = None
