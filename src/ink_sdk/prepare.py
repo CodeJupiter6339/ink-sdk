@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import tempfile
 from pathlib import Path
 
@@ -131,19 +132,36 @@ def crop_roi(volume: np.ndarray, roi: tuple[int, int, int, int] | None) -> np.nd
     return volume[:, y0:y1, x0:x1]
 
 
+def _source_identity(source: Path) -> list:
+    """Path plus the size and mtime of every file under it.
+
+    A zarr directory keeps its own mtime when a renderer rewrites the chunks in its level subdirectories, so the
+    directory's stat alone would let a re-rendered surface volume hit the cache of the previous render.
+    """
+    try:
+        resolved = str(source.resolve())
+        if not source.is_dir():
+            stat = source.stat()
+            return [resolved, stat.st_size, stat.st_mtime_ns]
+        files = []
+        for directory, _, names in os.walk(source):
+            for name in names:
+                stat = os.stat(os.path.join(directory, name))
+                files.append((os.path.relpath(os.path.join(directory, name), source), stat.st_size, stat.st_mtime_ns))
+        files.sort()
+        return [resolved, len(files), hashlib.sha256(json.dumps(files).encode("utf-8")).hexdigest()]
+    except OSError:
+        return [str(source)]
+
+
 def _cache_key(
     source: Path,
     profile: ModelProfile,
     plan: ScalePlan,
     roi: tuple[int, int, int, int] | None,
 ) -> str:
-    try:
-        stat = source.stat()
-        identity = [str(source.resolve()), stat.st_size, stat.st_mtime_ns]
-    except OSError:
-        identity = [str(source)]
     payload = {
-        "source": identity,
+        "source": _source_identity(source),
         "profile": profile.id,
         "scale": [plan.source_um, plan.target_um, plan.mode, plan.factors_zyx, plan.resample_from_um],
         "roi": roi,

@@ -81,3 +81,21 @@ def test_transformed_input_without_cache_gets_a_materialised_zarr(tmp_path):
     assert prepared.array.shape == (4, 2, 4)
     assert prepared.path != path
     assert (prepared.path / "0" / ".zarray").is_file()
+
+
+def test_prepare_cache_misses_after_the_source_is_rewritten_in_place(tmp_path):
+    import zarr
+
+    from ink_sdk.io import write_zarr
+
+    source = tmp_path / "sv.zarr"
+    write_zarr(source, np.full((16, 64, 64), 10, np.uint8))
+    profile = get_profile("studio@softloss-20261023")
+    first = prepare_input(source, profile, source_um=9.362, cache_dir=tmp_path / "cache", roi=(0, 32, 0, 32))
+    assert int(first.array[0, 0, 0]) == 10
+    zarr.open(str(source / "0"), mode="r+")[:] = 200  # a renderer rewriting the chunks of the same segment
+    second = prepare_input(source, profile, source_um=9.362, cache_dir=tmp_path / "cache", roi=(0, 32, 0, 32))
+    assert second.receipt["cache_hit"] is False
+    assert int(np.asarray(second.array)[0, 0, 0]) == 200
+    third = prepare_input(source, profile, source_um=9.362, cache_dir=tmp_path / "cache", roi=(0, 32, 0, 32))
+    assert third.receipt["cache_hit"] is True
