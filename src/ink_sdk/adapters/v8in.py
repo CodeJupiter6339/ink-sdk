@@ -118,6 +118,8 @@ class V8inAdapter(BaseAdapter):
         for i in range(layers):
             tifffile.imwrite(layer_dir / f"{i:02d}.tif", np.asarray(prepared.array[i]))
         interpreter = ctx.python or sys.executable
+        if os.sep in interpreter or (os.altsep and os.altsep in interpreter):
+            interpreter = str(Path(interpreter).resolve())  # a path, so not looked up on PATH: make it absolute too
         device = _device(getattr(ctx, "device", None))
         # On MPS, predict.py runs through a wrapper that sends the ResNet3D's 3-D convolutions through 2-D kernels.
         launcher = [interpreter, str(MPS_RUNNER), str(script)] if device == "mps" else [interpreter, str(script)]
