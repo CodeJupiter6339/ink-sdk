@@ -99,3 +99,16 @@ def test_prepare_cache_misses_after_the_source_is_rewritten_in_place(tmp_path):
     assert int(np.asarray(second.array)[0, 0, 0]) == 200
     third = prepare_input(source, profile, source_um=9.362, cache_dir=tmp_path / "cache", roi=(0, 32, 0, 32))
     assert third.receipt["cache_hit"] is True
+
+
+def test_source_identity_ignores_a_file_it_cannot_stat_but_still_sees_rewrites(tmp_path):
+    from ink_sdk.prepare import _source_identity
+
+    source = tmp_path / "sv.zarr"
+    (source / "0").mkdir(parents=True)
+    (source / "0" / "0.0.0").write_bytes(b"a" * 8)
+    (source / "dangling").symlink_to(tmp_path / "missing")  # os.stat fails on it
+    before = _source_identity(source)
+    assert len(before) == 3  # not the bare-path fallback
+    (source / "0" / "0.0.0").write_bytes(b"b" * 9)
+    assert _source_identity(source) != before

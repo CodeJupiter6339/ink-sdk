@@ -146,8 +146,12 @@ def _source_identity(source: Path) -> list:
         files = []
         for directory, _, names in os.walk(source):
             for name in names:
-                stat = os.stat(os.path.join(directory, name))
-                files.append((os.path.relpath(os.path.join(directory, name), source), stat.st_size, stat.st_mtime_ns))
+                path = os.path.join(directory, name)
+                try:
+                    stat = os.stat(path)
+                except OSError:  # renamed away mid-walk, or a dangling link: skip it, not the whole identity
+                    continue
+                files.append((os.path.relpath(path, source), stat.st_size, stat.st_mtime_ns))
         files.sort()
         return [resolved, len(files), hashlib.sha256(json.dumps(files).encode("utf-8")).hexdigest()]
     except OSError:
