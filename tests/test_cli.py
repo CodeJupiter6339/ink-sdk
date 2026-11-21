@@ -101,5 +101,9 @@ def test_infer_passes_batch_to_the_run(monkeypatch, tmp_path, surface_volume):
     runner.invoke(app, ["infer", "-p", "studio@softloss-20261023", "--surface-volume", str(surface_volume),
                         "--voxel-um", "9.362", "--out", str(tmp_path / "o"), "--batch", "3", "--dry-run"])
     assert seen["batch"] == 3
-    result = runner.invoke(app, ["infer", "--surface-volume", str(surface_volume), "--batch", "0", "--dry-run"])
-    assert result.exit_code != 0
+    args = ["infer", "-p", "studio@softloss-20261023", "--surface-volume", str(surface_volume),
+            "--voxel-um", "9.362", "--out", str(tmp_path / "o0"), "--dry-run"]
+    assert runner.invoke(app, args + ["--batch", "1"]).exit_code == 0
+    result = runner.invoke(app, args + ["--batch", "0"])
+    assert result.exit_code == 2  # usage error from the option's min=1, not a later failure
+    assert "--batch" in result.output
