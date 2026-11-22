@@ -1,0 +1,46 @@
+schema = "ink-sdk.profile.v1"
+id = "ink_9um@argus-v3"
+adapter = "ink9um"
+family = "surface-volume-2d"
+# Argus V3 by Louis De Puyfontaine (ruiconte): uniform weight average of 4 fine-tunes of Reader V3 on native 8-9 um scans
+# (random 30 % block-shares of domenicor046/reader-v2-labels; one run also on 2.4 um renders converted to look native),
+# depth order never flipped. Same network and file layout as reader-v3.pth.
+# Never used for its training or selection: PHerc0841 and PHerc1447.
+
+[source]
+repo = "ruiconte/argus-v3"
+revision = "dc8eaad65adda3722a8c57d93fb5cb98811e845b"
+upstream = "ScrollPrize/villa"
+upstream_revision = "3ea17f54a9b3d5fd1aaf73e1d2c8386dbaa9f30e"
+url = "https://huggingface.co/ruiconte/argus-v3"
+license = "MIT"
+
+[checkpoint]
+path = "argus-v3/argus-v3.pth"
+upstream_path = "argus-v3.pth"
+sha256 = "2d887d2bffaadcefae1507bea269e04e1e79c47a6320cce6071d701b4089bbe3"
+bytes = 272902857
+
+[input]
+kind = "surface-volume"
+family = "surface-volume-2d"
+# Native 8-9 um scans, as Reader V3 (9.362 +/- 0.75 covers 8.64 natively).
+scale_um = 9.362
+scale_tolerance_um = 0.75
+depth = 17
+normalization = "from-checkpoint"
+# Fine-tuned on 256 px tiles.
+tile = 256
+overlap = 0.5
+
+[execution]
+direction = "both"
+blend = "hann"
+batch = 1
+amp = "bf16"
+
+[output]
+primary = "forward"
+# Fine-tuned with BCE and label smoothing 0.5 plus Dice (model card), as Reader V3.
+no_ink_floor = 0.5
+floor_provenance = "author"
