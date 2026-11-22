@@ -66,6 +66,9 @@ class HecateAdapter(BaseAdapter):
         model = self.model_factory(checkpoint, device)
         if hasattr(model, "eval"):
             model.eval()
+        from ..mps import prepare_for_device
+
+        model = prepare_for_device(model, device)   # MPS: 3-D convolutions through 2-D kernels
         sampling = float(getattr(model, "sampling_um", profile.input.scale_um))
         if abs(float(prepared.pixel_um[0]) / sampling - 1) > 0.02:
             raise InkSDKError(

@@ -111,6 +111,9 @@ class Canonical2umAdapter(BaseAdapter):
         started = time.time()
         factory = self.model_factory
         model = factory(checkpoint, device, frames)
+        from ..mps import prepare_for_device
+
+        model = prepare_for_device(model, device)   # MPS: 3-D convolutions through 2-D kernels
         if hasattr(model, "eval"):
             model.eval()
         output_scale = int(model.get_output_scale_factor()) if hasattr(model, "get_output_scale_factor") else 1

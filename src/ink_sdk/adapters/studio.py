@@ -92,6 +92,9 @@ class StudioAdapter(BaseAdapter):
         stride = int(profile.input.stride or 64)
         blend = "none" if stride == 96 else str(profile.execution.blend)
         model = self.model_factory(checkpoint, device)
+        from ..mps import prepare_for_device
+
+        model = prepare_for_device(model, device)   # MPS: 3-D convolutions through 2-D kernels
         predict = self.predict or _upstream().predict
         direction = profile.execution.direction
         wanted = ["forward", "reverse"] if direction == "both" else [direction]
