@@ -61,3 +61,23 @@ def test_studio_adapter_orders_and_tiling(tmp_path, monkeypatch):
     assert np.allclose(raw.maps["reverse"], 23 / 255) and raw.receipt["planes"] == list(range(8, 24))
     maps = adapter.to_maps(raw, prepared, profile)
     assert maps["reverse"].checkpoint_sha256 == profile.checkpoint.sha256
+
+
+def test_studio_adapter_takes_the_batch_override(tmp_path, monkeypatch):
+    checkpoint = tmp_path / "w.safetensors"
+    checkpoint.write_bytes(b"fake")
+    monkeypatch.setattr(ModelProfile, "verify_checkpoint", lambda self, models: checkpoint)
+    batches = []
+
+    def fake_predict(model, volume, output, device, batch, amp, stride, blend):
+        batches.append(batch)
+        return np.zeros(volume.shape[1:], np.float32)
+
+    z = np.zeros((31, 20, 30), np.uint8)
+    path = tmp_path / "p.zarr"
+    prepared = PreparedInput(path=path, array=z, pixel_um=(9.362,) * 3, source=path,
+                             scale_plan=ScalePlan(9.362, 9.362, "native"), valid=np.ones((20, 30), bool))
+    adapter = StudioAdapter(model_factory=lambda ckpt, device: object(), predict=fake_predict)
+    raw = adapter.run(prepared, get_profile("studio@softloss-20261023"),
+                      RunContext(device="cpu", workdir=tmp_path, models_dir=tmp_path, batch=2))
+    assert batches == [2, 2] and raw.receipt["batch"] == 2  # the profile says 8

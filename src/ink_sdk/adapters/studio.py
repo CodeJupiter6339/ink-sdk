@@ -25,7 +25,7 @@ import numpy as np
 from ..contracts import Issue, PreparedInput, RawOutput, RunContext, Segment
 from ..errors import InkSDKError, ValidationError
 from ..profiles import ModelProfile
-from .base import BaseAdapter, resolve_device, source_scale_issue, stats
+from .base import BaseAdapter, batch_size, resolve_device, source_scale_issue, stats
 
 PLANES = 16
 VENDOR = Path(__file__).resolve().parents[1] / "_vendor" / "studio"
@@ -104,7 +104,7 @@ class StudioAdapter(BaseAdapter):
             for d in wanted:
                 vol = stack if d == "forward" else np.ascontiguousarray(stack[::-1])
                 ctx.say(f"studio: {d}, planes {idx[0]}..{idx[-1]}, stride {stride}, {blend}, {amp}, {device}")
-                out = predict(model, vol, Path(tmp) / f"{d}.npy", device, int(profile.execution.batch), amp, stride, blend)
+                out = predict(model, vol, Path(tmp) / f"{d}.npy", device, batch_size(profile, ctx), amp, stride, blend)
                 maps[d] = np.array(out, dtype=np.float32)
                 del out
                 if device.startswith("cuda"):
@@ -123,7 +123,7 @@ class StudioAdapter(BaseAdapter):
                 "reverse": "planes deepest first (upstream's order for a vc_render_tifxyz render)",
                 "stride": stride,
                 "blend": blend,
-                "batch": int(profile.execution.batch),
+                "batch": batch_size(profile, ctx),
                 "amp": amp,
                 "device": device,
                 "direction": direction,

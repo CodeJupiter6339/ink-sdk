@@ -14,7 +14,7 @@ from ..contracts import Issue, PreparedInput, RawOutput, RunContext, Segment
 from ..errors import InkSDKError, ValidationError
 from ..io import write_zarr
 from ..profiles import ModelProfile
-from .base import BaseAdapter, resolve_device, source_scale_issue, stats
+from .base import BaseAdapter, batch_size, resolve_device, source_scale_issue, stats
 
 
 def _default_model_factory(checkpoint: Path, device):
@@ -108,7 +108,7 @@ class HecateAdapter(BaseAdapter):
                 out,
                 reverse=reverse_z,
                 stride=profile.input.stride,
-                batch_size=int(profile.execution.batch),
+                batch_size=batch_size(profile, ctx),
                 precision=precision,
                 three_d=False,
             )
@@ -131,7 +131,7 @@ class HecateAdapter(BaseAdapter):
                 out3d,
                 reverse=(direction == "reverse"),
                 stride=profile.input.stride,
-                batch_size=int(profile.execution.batch),
+                batch_size=batch_size(profile, ctx),
                 precision=precision,
                 three_d=True,
             )

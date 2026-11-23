@@ -116,6 +116,14 @@ class DummyAdapter(BaseAdapter):
         )
 
 
+def batch_size(profile: ModelProfile, ctx: RunContext | None) -> int:
+    """Tiles per forward pass: ``--batch`` when given, else the profile's ``execution.batch``."""
+    value = ctx.batch if ctx is not None and ctx.batch is not None else profile.execution.batch
+    if int(value) < 1:
+        raise ValidationError(f"batch must be at least 1, got {value}")
+    return int(value)
+
+
 def require_torch() -> None:
     try:
         import torch  # noqa: F401
